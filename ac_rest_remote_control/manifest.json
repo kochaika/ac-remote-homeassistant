@@ -1,0 +1,9 @@
+{
+  "domain": "ac_rest_remote_control",
+  "name": "Air Conditioner Remote",
+  "codeowners": [],
+  "dependencies": [],
+  "documentation": "https://github.com/kochaika/ac-remote-homeassistant",
+  "iot_class": "local_polling",
+  "version": "1.0.0"
+}
