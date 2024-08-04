@@ -449,7 +449,7 @@ class ACRemoteControl(ClimateEntity, RestoreEntity):
         credentials = HTTPBasicAuth(self._username, self._password)
         headers = {'Content-Type': 'application/json'}
         try:
-            _LOGGER.warning("Sending request: [%s]: %s", str(self._rest_url), str(payload))
+            _LOGGER.info("Sending request: [%s]: %s", str(self._rest_url), str(payload))
             response = requests.post(self._rest_url, data=json.dumps(payload), headers=headers,
                                      auth=credentials, timeout=3)
             response.raise_for_status()
@@ -462,7 +462,7 @@ class ACRemoteControl(ClimateEntity, RestoreEntity):
         """Build and send new json-command to AC if configuration was changed since last sending"""
         cur_state = ACState(self.target_temperature, self.hvac_mode)
         if self._last_state != cur_state:
-            _LOGGER.warning("Something changed: %s", str(cur_state))
+            _LOGGER.info("Something changed: %s", str(cur_state))
             power_toggle = ((self._last_state.mode == HVACMode.OFF and cur_state.mode != HVACMode.OFF) or
                             (self._last_state.mode != HVACMode.OFF and cur_state.mode == HVACMode.OFF))
             payload = {
@@ -478,7 +478,7 @@ class ACRemoteControl(ClimateEntity, RestoreEntity):
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode."""
-        _LOGGER.warning("Setting new preset mode: %s", preset_mode)
+        _LOGGER.info("Setting new preset mode: %s", preset_mode)
         if preset_mode not in (self.preset_modes or []):
             raise ValueError(
                 f"Got unsupported preset_mode {preset_mode}. Must be one of"
