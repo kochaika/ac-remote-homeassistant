@@ -353,13 +353,13 @@ class ACRemoteControl(ClimateEntity, RestoreEntity):
         """Set hvac mode."""
         if hvac_mode == HVACMode.HEAT:
             self._hvac_mode = HVACMode.HEAT
-            await self._async_control_heating(force=True)
+            await self._async_control_heating()
         elif hvac_mode == HVACMode.COOL:
             self._hvac_mode = HVACMode.COOL
-            await self._async_control_heating(force=True)
+            await self._async_control_heating()
         elif hvac_mode == HVACMode.OFF:
             self._hvac_mode = HVACMode.OFF
-            await self._async_control_heating(force=True)
+            await self._async_control_heating()
             # if self._is_device_active:
             #     await self._async_heater_turn_off()
         else:
@@ -373,7 +373,7 @@ class ACRemoteControl(ClimateEntity, RestoreEntity):
         if (temperature := kwargs.get(ATTR_TEMPERATURE)) is None:
             return
         self._target_temp = temperature
-        await self._async_control_heating(force=True)
+        await self._async_control_heating()
         self.async_write_ha_state()
 
     @property
@@ -406,9 +406,9 @@ class ACRemoteControl(ClimateEntity, RestoreEntity):
             await self._async_heater_turn_off()
 
     async def _async_control_heating(
-            self, time: datetime | None = None, force: bool = False
-    ) -> None:
+            self, time: datetime | None = None) -> None:
         """Check if we need to turn heating on or off."""
+        # If the `time` argument is not none, we were invoked for keep-alive purposes.
         async with self._temp_lock:
             if not self._active and None not in (
                     # self._cur_temp,
@@ -426,18 +426,10 @@ class ACRemoteControl(ClimateEntity, RestoreEntity):
             if not self._active:  # or self._hvac_mode == HVACMode.OFF:
                 return
 
-            # If the `force` argument is True, we
-            # ignore `min_cycle_duration`.
-            # If the `time` argument is not none, we were invoked for
-            # keep-alive purposes, and `min_cycle_duration` is irrelevant.
-            if force and time is None and self.min_cycle_duration:
-                if self._is_device_active:
-                    long_enough = (datetime.now() - self._last_control_action_time) > self.min_cycle_duration
-                    if not long_enough:
-                        return
-
             if self._is_device_active:
-                await self._async_control_heating_command_sender()
+                long_enough = (datetime.now() - self._last_control_action_time) > self.min_cycle_duration
+                if long_enough:
+                    await self._async_control_heating_command_sender()
 
     @property
     def _is_device_active(self) -> bool | None:
@@ -468,7 +460,7 @@ class ACRemoteControl(ClimateEntity, RestoreEntity):
             payload = {
                 "power_toggle": power_toggle,
                 "power": self._hvac_mode != HVACMode.OFF,
-                "mode": "COOL_MODE" if self._hvac_mode == HVACMode.COOL else "HEAT_MODE",
+                "mode": "COOL_MODE" if (self._hvac_mode == HVACMode.COOL or self._hvac_mode == HVACMode.OFF) else "HEAT_MODE",
                 "fan": "FAN_AUTO",
                 "temperature": self.target_temperature
             }
@@ -490,11 +482,11 @@ class ACRemoteControl(ClimateEntity, RestoreEntity):
         if preset_mode == PRESET_NONE:
             self._attr_preset_mode = PRESET_NONE
             self._target_temp = self._saved_target_temp
-            await self._async_control_heating(force=False)
+            await self._async_control_heating()
         else:
             if self._attr_preset_mode == PRESET_NONE:
                 self._saved_target_temp = self._target_temp
             self._attr_preset_mode = preset_mode
             self._target_temp = self._presets[preset_mode]
-            await self._async_control_heating(force=False)
+            await self._async_control_heating()
         self.async_write_ha_state()
